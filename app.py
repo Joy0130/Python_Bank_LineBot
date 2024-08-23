@@ -485,6 +485,6 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response_message))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0',port=5000)
     #app.run(host='0.0.0.0',port=5002) #預設5000 mac執行要加上port5001或5002
     
