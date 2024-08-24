@@ -1,4 +1,10 @@
+pip list --format=freeze > requirements.txt
 Flask
 gunicorn
 line-bot-sdk
+beautifulsoup4
+requests
+pandas
+re
+os
 
