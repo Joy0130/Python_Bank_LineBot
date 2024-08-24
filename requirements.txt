@@ -11,5 +11,6 @@ google-cloud-storage
 google-api-python-client
 python-dotenv
 matplotlib
+lxml
 
 
