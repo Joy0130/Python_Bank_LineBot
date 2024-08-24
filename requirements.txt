@@ -1,5 +1,6 @@
 Flask
 gunicorn
+fastapi
 line-bot-sdk
 beautifulsoup4
 pandas

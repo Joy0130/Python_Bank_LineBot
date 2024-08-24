@@ -32,8 +32,8 @@ line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # 當呼叫line verify驗證成功後 會回應ok
-#@app.route("/")
-@app.route("/callback", methods=['POST'])
+@app.route("/")
+#@app.route("/callback", methods=['POST'])
 def callback():
     
     signature = request.headers['X-Line-Signature']
