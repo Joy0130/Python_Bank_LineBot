@@ -1,4 +1,4 @@
-pip list --format=freeze > requirements.txt
+pip freeze > requirements.txt
 Flask
 gunicorn
 line-bot-sdk
