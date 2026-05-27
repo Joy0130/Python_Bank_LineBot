@@ -116,11 +116,11 @@ def get_exchange_rates_message():
         header = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text="幣別", weight="bold", flex=2, wrap=True),
-                TextComponent(text="現金匯率 本行買入", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="現金匯率 本行賣出", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="即期匯率 本行買入", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="即期匯率 本行賣出", weight="bold", flex=3, align="end", wrap=True)
+                TextComponent(text="幣別", weight="bold", size="xs", flex=2, wrap=True),
+                TextComponent(text="現金買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="現金賣出", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="即期買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="即期賣出", weight="bold", size="xs", flex=3, align="end", wrap=True)
             ]
         )
         contents.append(header)
@@ -140,11 +140,11 @@ def get_exchange_rates_message():
             row = BoxComponent(
                 layout="horizontal",
                 contents=[
-                    TextComponent(text=display_text, flex=2, wrap=True),
-                    TextComponent(text=cash_buy, flex=3, align="end", wrap=True),
-                    TextComponent(text=cash_sell, flex=3, align="end", wrap=True),
-                    TextComponent(text=spot_buy, flex=3, align="end", wrap=True),
-                    TextComponent(text=spot_sell, flex=3, align="end", wrap=True)
+                    TextComponent(text=display_text, size="xs", flex=2, wrap=True),
+                    TextComponent(text=cash_buy, size="xs", flex=3, align="end", wrap=True),
+                    TextComponent(text=cash_sell, size="xs", flex=3, align="end", wrap=True),
+                    TextComponent(text=spot_buy, size="xs", flex=3, align="end", wrap=True),
+                    TextComponent(text=spot_sell, size="xs", flex=3, align="end", wrap=True)
                 ]
             )
             contents.append(row)
@@ -155,6 +155,7 @@ def get_exchange_rates_message():
             alt_text="匯率資訊",
             contents=BubbleContainer(
                 direction='ltr',
+                size='giga',
                 body=BoxComponent(
                     layout='vertical',
                     contents=contents,
@@ -216,11 +217,11 @@ def generate_flex_message(currency, rate_info):
         header = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text="幣別", weight="bold", flex=2, wrap=True),
-                TextComponent(text="現金匯率 本行買入", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="現金匯率 本行賣出", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="即期匯率 本行買入", weight="bold", flex=3, align="end", wrap=True),
-                TextComponent(text="即期匯率 本行賣出", weight="bold", flex=3, align="end", wrap=True)
+                TextComponent(text="幣別", weight="bold", size="xs", flex=2, wrap=True),
+                TextComponent(text="現金買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="現金賣出", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="即期買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="即期賣出", weight="bold", size="xs", flex=3, align="end", wrap=True)
             ]
         )
         contents.append(header)
@@ -232,11 +233,11 @@ def generate_flex_message(currency, rate_info):
         row = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text=display_text, flex=2, wrap=True),
-                TextComponent(text=rate_info['cash_buy'], flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['cash_sell'], flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['spot_buy'], flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['spot_sell'], flex=3, align="end", wrap=True)
+                TextComponent(text=display_text, size="xs", flex=2, wrap=True),
+                TextComponent(text=rate_info['cash_buy'], size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text=rate_info['cash_sell'], size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text=rate_info['spot_buy'], size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text=rate_info['spot_sell'], size="xs", flex=3, align="end", wrap=True)
             ]
         )
         contents.append(row)
@@ -247,6 +248,7 @@ def generate_flex_message(currency, rate_info):
             alt_text=f"{currency}匯率資訊",
             contents=BubbleContainer(
                 direction='ltr',
+                size='giga',
                 body=BoxComponent(
                     layout='vertical',
                     contents=contents,
