@@ -74,6 +74,30 @@ currency_translation = {
     "泰幣":"THB",
 }
 
+# 幣別中文名稱對照表
+currency_name_zh = {
+    "USD": "美金",
+    "HKD": "港幣",
+    "GBP": "英鎊",
+    "AUD": "澳幣",
+    "CAD": "加拿大幣",
+    "SGD": "新加坡幣",
+    "CHF": "瑞士法郎",
+    "JPY": "日幣",
+    "ZAR": "南非幣",
+    "SEK": "瑞典幣",
+    "NZD": "紐元",
+    "THB": "泰銖",
+    "PHP": "菲國比索",
+    "IDR": "印尼幣",
+    "EUR": "歐元",
+    "KRW": "韓元",
+    "VND": "越南盾",
+    "MYR": "馬來幣",
+    "CNY": "人民幣"
+}
+
+
 
 #爬取台灣銀行匯率資料
 def get_exchange_rates_message():
@@ -110,10 +134,13 @@ def get_exchange_rates_message():
             spot_buy = cells[3].strip()
             spot_sell = cells[4].strip()
 
+            zh_name = currency_name_zh.get(currency, "")
+            display_text = f"{currency}\n({zh_name})" if zh_name else currency
+
             row = BoxComponent(
                 layout="horizontal",
                 contents=[
-                    TextComponent(text=currency, flex=2, wrap=True),
+                    TextComponent(text=display_text, flex=2, wrap=True),
                     TextComponent(text=cash_buy, flex=3, align="end", wrap=True),
                     TextComponent(text=cash_sell, flex=3, align="end", wrap=True),
                     TextComponent(text=spot_buy, flex=3, align="end", wrap=True),
@@ -200,10 +227,12 @@ def generate_flex_message(currency, rate_info):
         contents.append(SeparatorComponent())
 
         # 加入指定幣別的匯率資料
+        zh_name = currency_name_zh.get(currency, "")
+        display_text = f"{currency}\n({zh_name})" if zh_name else currency
         row = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text=currency, flex=2, wrap=True),
+                TextComponent(text=display_text, flex=2, wrap=True),
                 TextComponent(text=rate_info['cash_buy'], flex=3, align="end", wrap=True),
                 TextComponent(text=rate_info['cash_sell'], flex=3, align="end", wrap=True),
                 TextComponent(text=rate_info['spot_buy'], flex=3, align="end", wrap=True),
