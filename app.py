@@ -269,91 +269,94 @@ def get_gold_message():
         response = requests.get(url)
         response.raise_for_status()  
 
-        
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        
+        # 取得掛牌時間
         div_info = soup.find('div', class_='cf').find('div', class_='pull-left trailer text-info')
-        #取得掛牌時間
-        time = div_info.get_text(strip=True)
+        time = div_info.get_text(strip=True) if div_info else "掛牌時間未知"
 
-        tables = pd.read_html(url)
-        if tables:
+        # 解析黃金存摺買進與賣出價格
+        sell_price = "-"
+        buy_price = "-"
+        table = soup.find('table', {'title': '歷史黃金牌價'})
+        if table:
+            tbody = table.find('tbody')
+            if tbody:
+                for tr in tbody.find_all('tr'):
+                    cells = tr.find_all('td')
+                    if len(cells) >= 3:
+                        cell_text = cells[1].get_text(strip=True)
+                        if "本行賣出" in cell_text:
+                            price_cell = cells[-1].get_text(strip=True)
+                            match = re.search(r'[\d,.]+', price_cell)
+                            if match:
+                                sell_price = match.group(0)
+                        elif "本行買進" in cell_text:
+                            price_cell = cells[-1].get_text(strip=True)
+                            match = re.search(r'[\d,.]+', price_cell)
+                            if match:
+                                buy_price = match.group(0)
 
-            df = tables[0]
+        # Flex Message 內容
+        contents = []
 
-            df.columns = ['_'.join(col).strip() for col in df.columns.values]
-
-            sell_column = '單位：新臺幣元_1 公克'
-            buy_column = 'Unnamed: 1_level_0_Unnamed: 1_level_1'
-
-            #資料列
-            df_filtered = df[[sell_column, buy_column]]
-
-            # 重命名列
-            df_filtered.columns = ['本行賣出', '本行買進']
-
-            df_filtered = df_filtered[~df_filtered.apply(lambda row: row.astype(str).str.contains('^0$|^1$', regex=True).any(), axis=1)]
-
-            # Flex Message内容
-            contents = []
-
-            # 表頭
-            header = BoxComponent(
-                layout="horizontal",
+        # 1. 頂部標題與時間
+        contents.append(
+            BoxComponent(
+                layout="vertical",
                 contents=[
-                    TextComponent(text="商品", weight="bold", flex=2, wrap=True),
-                    TextComponent(text="黃金1克", weight="bold", flex=3, align="end", wrap=True),
-                    TextComponent(text=time, weight="bold", flex=3, align="end", wrap=True)
+                    TextComponent(text="臺灣銀行黃金牌價", weight="bold", size="sm", color="#111111"),
+                    TextComponent(text=time, size="xs", color="#888888", margin="xs"),
+                    SeparatorComponent(margin="md")
                 ]
             )
-            contents.append(header)
-            contents.append(SeparatorComponent())
+        )
 
-            # 表格
-            for index, row in df_filtered.iterrows():
-                row_content = BoxComponent(
-                    layout="horizontal",
-                    contents=[
-                        TextComponent(text="黃金", flex=2, wrap=True),
-                        TextComponent(text=row['本行賣出'], flex=3, align="end", wrap=True),
-                        TextComponent(text=row['本行買進'], flex=3, align="end", wrap=True)
-                    ]
-                )
-                contents.append(row_content)
-                contents.append(SeparatorComponent())
+        # 2. 表格表頭
+        header = BoxComponent(
+            layout="horizontal",
+            contents=[
+                TextComponent(text="商品名稱", weight="bold", size="xs", flex=2, wrap=True),
+                TextComponent(text="本行買進 (回售)", weight="bold", size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text="本行賣出 (買進)", weight="bold", size="xs", flex=3, align="end", wrap=True)
+            ]
+        )
+        contents.append(header)
+        contents.append(SeparatorComponent(margin="xs"))
 
-            # Flex Message 調整版面
-            flex_message = FlexSendMessage(
-                alt_text="黃金資訊",
-                contents=BubbleContainer(
-                    direction='ltr',
-                    body=BoxComponent(
-                        layout='vertical',
-                        contents=contents,
-                        spacing="xs"
-                    )
-                )
-            )
-            return flex_message
+        # 3. 表格內容
+        row_content = BoxComponent(
+            layout="horizontal",
+            contents=[
+                TextComponent(text="黃金存摺 (1克)", size="xs", flex=2, wrap=True),
+                TextComponent(text=buy_price, size="xs", flex=3, align="end", wrap=True),
+                TextComponent(text=sell_price, size="xs", flex=3, align="end", wrap=True)
+            ]
+        )
+        contents.append(row_content)
+        contents.append(SeparatorComponent(margin="xs"))
 
-        else:
-            return FlexSendMessage(
-                alt_text="黃金資訊",
-                contents=BubbleContainer(
-                    direction='ltr',
-                    body=BoxComponent(
-                        layout='vertical',
-                        contents=[TextComponent(text="無表格資料")]
-                    )
+        # Flex Message 調整版面
+        flex_message = FlexSendMessage(
+            alt_text="黃金資訊",
+            contents=BubbleContainer(
+                direction='ltr',
+                size='giga',
+                body=BoxComponent(
+                    layout='vertical',
+                    contents=contents,
+                    spacing="xs"
                 )
             )
+        )
+        return flex_message
 
     except Exception as e:
         return FlexSendMessage(
             alt_text="黃金資訊",
             contents=BubbleContainer(
                 direction='ltr',
+                size='giga',
                 body=BoxComponent(
                     layout='vertical',
                     contents=[TextComponent(text=f"發生錯誤: {e}")]
@@ -420,18 +423,18 @@ def handle_message(event):
                             label="黃金價格",
                             text="黃金價格"
                         ),
-                         MessageAction(
-                            label="黃金買賣價格圖",
-                            text="黃金價格圖"
-                        ),
+                        #  MessageAction(
+                        #     label="黃金買賣價格圖",
+                        #     text="黃金價格圖"
+                        # ),
                          MessageAction(
                             label="黃金買賣動態價格圖",
                             text="黃金動態價格圖"
-                        ),
-                         MessageAction(
-                            label="黃金平均移動線圖",
-                            text="黃金平均移動線圖"
                         )
+                        #  MessageAction(
+                        #     label="黃金平均移動線圖",
+                        #     text="黃金平均移動線圖"
+                        # )
                     ]
                 )
             )
