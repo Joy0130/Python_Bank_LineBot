@@ -3,7 +3,7 @@ from linebot.exceptions import InvalidSignatureError
 #接收
 from linebot.v3.webhook import WebhookHandler,MessageEvent
 from linebot.v3.messaging import ImageMessage
-from linebot.models import FlexSendMessage, BubbleContainer, BoxComponent,TextComponent,SeparatorComponent,MessageEvent, TextSendMessage, TemplateSendMessage,TextMessage, ButtonsTemplate,MessageAction,ImageSendMessage
+from linebot.models import FlexSendMessage, BubbleContainer, BoxComponent,TextComponent,SeparatorComponent,MessageEvent, TextSendMessage, TemplateSendMessage,TextMessage, ButtonsTemplate,MessageAction,ImageSendMessage,URIAction
 from linebot import LineBotApi
 from linebot import LineBotApi, WebhookHandler
 import requests
@@ -176,6 +176,80 @@ def get_exchange_rates_message():
                 )
             )
         )
+
+# 歷史匯率走勢查詢選單 (3欄式網格設計)
+def get_historical_rates_menu():
+    currencies_info = [
+        {"code": "USD", "name": "美金", "flag": "🇺🇸"},
+        {"code": "JPY", "name": "日圓", "flag": "🇯🇵"},
+        {"code": "EUR", "name": "歐元", "flag": "🇪🇺"},
+        {"code": "CNY", "name": "人民幣", "flag": "🇨🇳"},
+        {"code": "HKD", "name": "港幣", "flag": "🇭🇰"},
+        {"code": "GBP", "name": "英鎊", "flag": "🇬🇧"},
+        {"code": "AUD", "name": "澳幣", "flag": "🇦🇺"},
+        {"code": "CAD", "name": "加幣", "flag": "🇨🇦"},
+        {"code": "SGD", "name": "新加坡", "flag": "🇸🇬"},
+        {"code": "CHF", "name": "瑞郎", "flag": "🇨🇭"},
+        {"code": "KRW", "name": "韓元", "flag": "🇰🇷"},
+        {"code": "THB", "name": "泰銖", "flag": "🇹🇭"},
+        {"code": "PHP", "name": "菲比索", "flag": "🇵🇭"},
+        {"code": "ZAR", "name": "南非幣", "flag": "🇿🇦"},
+        {"code": "SEK", "name": "瑞典幣", "flag": "🇸🇪"},
+        {"code": "NZD", "name": "紐元", "flag": "🇳🇿"},
+        {"code": "VND", "name": "越南盾", "flag": "🇻🇳"},
+        {"code": "MYR", "name": "馬來幣", "flag": "🇲🇾"},
+        {"code": "IDR", "name": "印尼幣", "flag": "🇮🇩"},
+    ]
+
+    contents = []
+
+    # 頂部標頭與提示
+    contents.append(
+        BoxComponent(
+            layout="vertical",
+            contents=[
+                TextComponent(text="📈 歷史走勢查詢 (近六個月)", weight="bold", size="sm", color="#111111"),
+                TextComponent(text="請選擇幣別直接查看臺灣銀行走勢圖：", size="xs", color="#777777", margin="xs"),
+                SeparatorComponent(margin="md")
+            ]
+        )
+    )
+
+    # 3欄網格排列
+    for i in range(0, len(currencies_info), 3):
+        chunk = currencies_info[i:i+3]
+        row_contents = []
+        for item in chunk:
+            cell = BoxComponent(
+                layout="vertical",
+                contents=[
+                    TextComponent(text=f"{item['flag']} {item['name']}", size="xs", align="center", weight="bold"),
+                    TextComponent(text=item['code'], size="xxs", align="center", color="#999999", margin="xs")
+                ],
+                action=URIAction(label=item['code'], uri=f"https://rate.bot.com.tw/xrt/quote/l6m/{item['code']}")
+            )
+            row_contents.append(cell)
+        
+        while len(row_contents) < 3:
+            row_contents.append(BoxComponent(layout="vertical", contents=[TextComponent(text=" ")]))
+            
+        contents.append(BoxComponent(layout="horizontal", contents=row_contents, spacing="sm", margin="md"))
+        contents.append(SeparatorComponent(margin="xs"))
+
+    flex_message = FlexSendMessage(
+        alt_text="歷史匯率查詢選單",
+        contents=BubbleContainer(
+            direction='ltr',
+            size='giga',
+            body=BoxComponent(
+                layout='vertical',
+                contents=contents,
+                spacing="xs"
+            )
+        )
+    )
+    return flex_message
+
 #抓匯率資料
 def get_exchange_rates():
     try:
@@ -386,8 +460,8 @@ def handle_message(event):
                 alt_text="模板訊息",
                 template=ButtonsTemplate(
                     thumbnail_image_url="https://i.imgur.com/vRKlaXQ.png",
-                    title="匯率",
-                    text="現金匯率/即時匯率/匯率換算",
+                    title="匯率資訊",
+                    text="請選擇查詢功能：",
                     actions=[
                         MessageAction(
                             label="各國匯率",
@@ -398,12 +472,8 @@ def handle_message(event):
                             text="匯率換算",
                         ),
                         MessageAction(
-                            label="澳幣歷史價錢查詢", 
-                            text="澳幣歷史價錢查詢",
-                        ),
-                        MessageAction(
-                            label="日圓(幣)歷史價錢查詢", 
-                            text="日圓(幣)歷史價錢查詢",
+                            label="歷史走勢查詢", 
+                            text="歷史走勢查詢",
                         )
                     ]
                 )
@@ -442,6 +512,12 @@ def handle_message(event):
 
     elif cmdtxt == "各國匯率":
         flex_message = get_exchange_rates_message()
+        line_bot_api.reply_message(
+            event.reply_token,
+            flex_message
+        )
+    elif cmdtxt in ["歷史走勢查詢", "歷史走勢"]:
+        flex_message = get_historical_rates_menu()
         line_bot_api.reply_message(
             event.reply_token,
             flex_message
