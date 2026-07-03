@@ -99,52 +99,77 @@ currency_name_zh = {
 
 
 
-#爬取台灣銀行匯率資料
+#爬取各國匯率資料（使用 open.er-api.com 免費API，台銀網站有Bot保護）
+def get_exchange_rates_from_api():
+    """從 open.er-api.com 取得以 TWD 為基底的匯率，回傳 {幣別: 每單位兌台幣金額} 字典。"""
+    try:
+        url = "https://open.er-api.com/v6/latest/TWD"
+        response = requests.get(url, timeout=15)
+        data = response.json()
+        if data.get('result') != 'success':
+            return None
+        # rates[X] = 1 TWD 可換多少 X，所以 1 X = 1/rates[X] TWD
+        raw_rates = data['rates']
+        exchange_rates = {}
+        for code in raw_rates:
+            if raw_rates[code] != 0:
+                exchange_rates[code] = round(1 / raw_rates[code], 4)
+        return exchange_rates
+    except Exception as e:
+        print(f"API Error: {e}")
+        return None
+
+
 def get_exchange_rates_message():
     try:
-        url = "https://rate.bot.com.tw/xrt"
-        response = requests.get(url)
-        response.encoding = 'utf-8'
+        exchange_rates = get_exchange_rates_from_api()
+        if exchange_rates is None:
+            raise ValueError("無法取得匯率資料")
 
-        soup = BeautifulSoup(response.text, 'html.parser')
-        table = soup.find('table', {'title': '牌告匯率'})
+        # 要顯示的幣別順序
+        display_currencies = [
+            "USD", "JPY", "EUR", "CNY", "HKD", "GBP",
+            "AUD", "CAD", "SGD", "CHF", "KRW", "THB",
+            "PHP", "ZAR", "SEK", "NZD", "VND", "MYR", "IDR"
+        ]
 
-        # 取得表格中的內容
         contents = []
+
+        # 說明標題
+        contents.append(
+            BoxComponent(
+                layout="vertical",
+                contents=[
+                    TextComponent(text="各國匯率（兌台幣參考匯率）", weight="bold", size="sm", color="#111111"),
+                    TextComponent(text="資料來源：open.er-api.com（即時更新）", size="xxs", color="#999999", margin="xs"),
+                    SeparatorComponent(margin="md")
+                ]
+            )
+        )
 
         # 表頭
         header = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text="幣別", weight="bold", size="xs", flex=2, wrap=True),
-                TextComponent(text="現金買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="現金賣出", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="即期買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="即期賣出", weight="bold", size="xs", flex=3, align="end", wrap=True)
+                TextComponent(text="幣別", weight="bold", size="xs", flex=3, wrap=True),
+                TextComponent(text="1外幣兌台幣", weight="bold", size="xs", flex=4, align="end", wrap=True),
             ]
         )
         contents.append(header)
         contents.append(SeparatorComponent())
 
-        for tr in table.find('tbody').find_all('tr'):
-            cells = [td.text.strip() for td in tr.find_all('td')]
-            currency = re.search(r'\b[A-Z]{3}\b', cells[0]).group(0) # Find 3-letter abbreviation
-            cash_buy = cells[1].strip()
-            cash_sell = cells[2].strip()
-            spot_buy = cells[3].strip()
-            spot_sell = cells[4].strip()
-
-            zh_name = currency_name_zh.get(currency, "")
-            display_text = f"{currency}\n({zh_name})" if zh_name else currency
+        for code in display_currencies:
+            if code not in exchange_rates:
+                continue
+            rate_val = exchange_rates[code]
+            zh_name = currency_name_zh.get(code, "")
+            display_text = f"{code}\n({zh_name})" if zh_name else code
 
             row = BoxComponent(
                 layout="horizontal",
                 contents=[
-                    TextComponent(text=display_text, size="xs", flex=2, wrap=True),
-                    TextComponent(text=cash_buy, size="xs", flex=3, align="end", wrap=True),
-                    TextComponent(text=cash_sell, size="xs", flex=3, align="end", wrap=True),
-                    TextComponent(text=spot_buy, size="xs", flex=3, align="end", wrap=True),
-                    TextComponent(text=spot_sell, size="xs", flex=3, align="end", wrap=True)
+                    TextComponent(text=display_text, size="xs", flex=3, wrap=True),
+                    TextComponent(text=str(rate_val), size="xs", flex=4, align="end", wrap=True),
                 ]
             )
             contents.append(row)
@@ -250,39 +275,24 @@ def get_historical_rates_menu():
     )
     return flex_message
 
-#抓匯率資料
+#抓匯率資料（使用 open.er-api.com，台銀網站有Bot保護）
 def get_exchange_rates():
     try:
-        url = "https://rate.bot.com.tw/xrt"
-        response = requests.get(url)
-        response.encoding = 'utf-8'
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        table = soup.find('table', {'title': '牌告匯率'})
-
+        raw = get_exchange_rates_from_api()
+        if raw is None:
+            return None
+        # 轉換格式以相容舊版 generate_flex_message
         exchange_rates = {}
-
-        for tr in table.find('tbody').find_all('tr'):
-            cells = [td.text.strip() for td in tr.find_all('td')]
-            currency = re.search(r'\b[A-Z]{3}\b', cells[0]).group(0)  # 找到三個字母的貨幣縮寫
-            cash_buy = cells[1].strip()
-            cash_sell = cells[2].strip()
-            spot_buy = cells[3].strip()
-            spot_sell = cells[4].strip()
-
-            exchange_rates[currency] = {
-                'cash_buy': cash_buy,
-                'cash_sell': cash_sell,
-                'spot_buy': spot_buy,
-                'spot_sell': spot_sell
+        for code, rate_val in raw.items():
+            exchange_rates[code] = {
+                'rate': str(rate_val),
             }
-
         return exchange_rates
     except Exception as e:
         print(f"Error occurred: {e}")
         return None
 
-# 生成 Flex Message 來顯示匯率資訊
+# 生成 Flex Message 來顯示匯率資訊（單一幣別）
 def generate_flex_message(currency, rate_info):
     try:
         contents = []
@@ -291,11 +301,8 @@ def generate_flex_message(currency, rate_info):
         header = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text="幣別", weight="bold", size="xs", flex=2, wrap=True),
-                TextComponent(text="現金買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="現金賣出", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="即期買入", weight="bold", size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text="即期賣出", weight="bold", size="xs", flex=3, align="end", wrap=True)
+                TextComponent(text="幣別", weight="bold", size="xs", flex=3, wrap=True),
+                TextComponent(text="1外幣兌台幣", weight="bold", size="xs", flex=4, align="end", wrap=True),
             ]
         )
         contents.append(header)
@@ -304,18 +311,24 @@ def generate_flex_message(currency, rate_info):
         # 加入指定幣別的匯率資料
         zh_name = currency_name_zh.get(currency, "")
         display_text = f"{currency}\n({zh_name})" if zh_name else currency
+        rate_val = rate_info.get('rate', '-')
         row = BoxComponent(
             layout="horizontal",
             contents=[
-                TextComponent(text=display_text, size="xs", flex=2, wrap=True),
-                TextComponent(text=rate_info['cash_buy'], size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['cash_sell'], size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['spot_buy'], size="xs", flex=3, align="end", wrap=True),
-                TextComponent(text=rate_info['spot_sell'], size="xs", flex=3, align="end", wrap=True)
+                TextComponent(text=display_text, size="xs", flex=3, wrap=True),
+                TextComponent(text=rate_val, size="xs", flex=4, align="end", wrap=True),
             ]
         )
         contents.append(row)
         contents.append(SeparatorComponent())
+
+        # 附加說明
+        contents.append(
+            TextComponent(
+                text="資料來源：open.er-api.com（即時參考匯率）",
+                size="xxs", color="#999999", margin="md", wrap=True
+            )
+        )
 
         # Flex Message
         flex_message = FlexSendMessage(
@@ -466,6 +479,10 @@ def handle_message(event):
                         MessageAction(
                             label="各國匯率",
                             text="各國匯率"
+                        ),
+                        URIAction(
+                            label="牌告匯率",
+                            uri="https://rate.bot.com.tw/xrt?Lang=zh-TW"
                         ),
                         MessageAction(
                             label="匯率換算", 
