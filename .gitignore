@@ -1,3 +1,8 @@
 測試程式/*
 .ipynb_checkpoints/*
 .env
+ngrok
+ngrok.exe
+google_auth.json
+__pycache__/
+*.png
